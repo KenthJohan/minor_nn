@@ -266,16 +266,28 @@ void lin_test_mv_mul_t ()
 
 
 
-#define L0 2
-#define L1 7
-#define L2 1
-#define SAMPLECOUNT 4
 
+
+
+void lin_assert_isnotnan (double const v[], unsigned n)
+{
+	for (unsigned i = 0; i < n; ++i)
+	{
+		if (isnan (v [i]))
+		{
+			printf ("v [%i] = %f\n", i, v [i]);
+		}
+		assert (isnan (v [i]) == 0);
+	}
+}
 
 
 
 void fw (double v1[], double const v0[], double const mw[], unsigned n1, unsigned n0)
 {
+	lin_assert_isnotnan (v0, n0);
+	lin_assert_isnotnan (v1, n1);
+	lin_assert_isnotnan (mw, n1*n0);
 	lin_mv_mul (v1, mw, v0, n1, n0); //v1 := mw * v0
 	lin_v_fx (v1, v1, sigmoid, n1); //v1 := sigmoid (v1)
 	//lin_print (v1, n1, 1);
@@ -296,11 +308,18 @@ void cw (double mw1[], double const vd1[], double const va0[], unsigned n1, unsi
 		for (unsigned c = 0; c < n0; ++c)
 		{
 			//double x = vd1[r] * va0[c] * 0.001;
-			mw1 [n0*r + c] -= vd1[r] * va0[c] * 0.0001;
+			mw1 [n0*r + c] += vd1[r] * va0[c] * 0.001;
 			//mw1 [n1*c + r] += 1;
 		}
 	}
 }
+
+
+#define L0 2
+#define L1 20
+#define L2 1
+#define SAMPLECOUNT 4
+
 
 double x[SAMPLECOUNT][L0] =
 {
@@ -333,6 +352,8 @@ int main (int argc, char * argv [])
 
 	lin_v_fx (w1, w1, lin_rnd, L1*L0);
 	lin_v_fx (w2, w2, lin_rnd, L2*L1);
+	lin_assert_isnotnan (w1, L1*L0);
+	lin_assert_isnotnan (w2, L2*L1);
 
 	/*
 	lin_print (w1, L1, L0);
@@ -351,16 +372,20 @@ int main (int argc, char * argv [])
 		//lin_print (w1, L1, L0);
 		//lin_print (w2, L2, L1);
 
-		for (int i = 0; i < SAMPLECOUNT; ++i)
+		int i = rand () % SAMPLECOUNT;
+		//for (int i = 0; i < SAMPLECOUNT; ++i)
 		{
-			fw (a1, w1, x[i], L1, L0);
-			fw (a2, w2, a1, L2, L1);
+
+
+			fw (a1, x[i], w1, L1, L0);
+			fw (a2,   a1, w2, L2, L1);
 
 
 			if (j == 0)
 			{
 				//printf ("==========\n");
-				printf ("%i %i % 2.6f\n", (int)x[i][0], (int)x[i][1], a1[1]);
+				printf ("%i %i % 2.6f\n", (int)x[i][0], (int)x[i][1], a2[0]);
+
 				/*
 				lin_print (w1, L1, L0);
 				lin_print (w2, L2, L1);
@@ -370,9 +395,10 @@ int main (int argc, char * argv [])
 				lin_print (y [i], 1, L2);
 				printf ("mse % 3.10f\n", lin_vv_mse (a2, y[i], L2));
 				*/
+
 			}
 
-			/*
+
 			lin_vv_sub (d2, y[i], a2, L2); //d2 := y - a2
 			lin_v_fx (a2, a2, sigmoid_pd, L2); //a2 := sigmoid_pd (a2)
 			lin_vv_hadamard (d2, d2, a2, L1); //d2 := d2 hadamard a2
@@ -382,7 +408,7 @@ int main (int argc, char * argv [])
 
 			cw (w1, d1, x[i], L1, L0);
 			cw (w2, d2, a1, L2, L1);
-			*/
+
 
 		}
 		j++;
