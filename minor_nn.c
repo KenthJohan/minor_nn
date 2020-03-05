@@ -240,6 +240,25 @@ void lin_test_mv_mul_t ()
 
 #define L0 3
 #define L1 2
+#define L2 1
+#define SAMPLECOUNT 4
+
+double x[SAMPLECOUNT][L0] =
+{
+	{0.0, 0.0, 0.0},
+	{0.0, 1.0, 0.0},
+	{1.0, 0.0, 0.0},
+	{1.0, 1.0, 0.0},
+};
+
+double y[SAMPLECOUNT][L2] =
+{
+	{0.0},
+	{1.0},
+	{1.0},
+	{0.0},
+};
+
 
 
 int main (int argc, char * argv [])
@@ -249,28 +268,43 @@ int main (int argc, char * argv [])
 	//lin_test_mv_mul ();
 	//lin_test_mv_mul_t ();
 
-	//L1 by L0 weight matrix, takes (L1) number of inputs and (L0) number of outputs.
-	double w0 [L1*L0];
+	//L1 by L0 weight matrix, takes (L0) number of inputs and (L1) number of outputs.
 	double a0 [L0]; //Layer 0 inputs
 	double d0 [L0]; //Error
+	double w0 [L1*L0];
 
 	double z1 [L1]; //Layer 1 input/output
 	double a1 [L1]; //Layer 1 input/output
 	double d1 [L1]; //Error
-	double y1 [L1] = {1.0, 0.0}; //Expected
+	double w1 [L2*L1];
+
+	double z2 [L2];
+	double a2 [L2];
+	double d2 [L2];
 
 	//Feedforward:
-	lin_mv_mul (z1, w0, a0, L1, L0); //z1 := w0 * a0
-	lin_v_fx (a1, z1, sigmoid, L1); //a1 := sigmoid (z1)
-	lin_print (a1, L1, 1);
+	for (int i = 0; i < SAMPLECOUNT; ++i)
+	{
+		lin_mv_mul (z1, w0, x[i], L1, L0); //z1 := w0 * a0
+		lin_v_fx (a1, z1, sigmoid, L1); //a1 := sigmoid (z1)
+		lin_print (a1, L1, 1);
 
 
-	//error
-	lin_vv_sub (d1, a1, y1, L1);
+		lin_mv_mul (z2, w1, a1, L2, L1); //z2 := w1 * a1
+		lin_v_fx (a2, z2, sigmoid, L2); //a2 := sigmoid (z2)
+		lin_print (a2, L2, 1);
 
-	//Backpropagate
-	lin_mv_mul_t (d0, w0, d1, L1, L0); //d0 := transpose(w0) * d1
-	lin_v_fx (a0, a0, sigmoid_pd, L0); //a0 := sigmoid_d (a0)
-	lin_vv_hadamard (d0, d0, a0, L1); //d0 := d0 hadamard a0
+		//error
+		lin_vv_sub (d2, a2, y[i], L2);
+
+		//Backpropagate
+		lin_mv_mul_t (d1, w1, d2, L1, L0); //d0 := transpose(w0) * d1
+		lin_v_fx (a0, a0, sigmoid_pd, L0); //a0 := sigmoid_d (a0)
+		lin_vv_hadamard (d0, d0, a0, L1); //d0 := d0 hadamard a0
+	}
+
+
+
+
 
 }
