@@ -29,6 +29,8 @@ Convention, declare matrix starting with m:
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
+#include <stdlib.h>
+#include <stdint.h>
 
 
 static void lin_print (double const ma[], unsigned rn, unsigned cn)
@@ -37,7 +39,7 @@ static void lin_print (double const ma[], unsigned rn, unsigned cn)
 	{
 		for (unsigned c = 0; c < cn; ++c)
 		{
-			printf ("%2.2f ", ma [rn*c + r]);
+			printf ("% 3.6f ", ma [rn*c + r]);
 		}
 		printf ("\n");
 	}
@@ -122,6 +124,19 @@ static double lin_vv_dot (double const va[], double const vb[], unsigned n)
 }
 
 
+
+static double lin_vv_mse (double const va[], double const vb[], unsigned n)
+{
+	double sum = 0;
+	for (unsigned i = 0; i < n; ++i)
+	{
+		double d = va [i] - vb [i];
+		sum += 0.5 * d * d;
+	}
+	return sum;
+}
+
+
 /**
  * @brief lin_mv_mul_t Multiply transposed matrix \p ma by vector \p vx.
  * @param vy Output vector
@@ -186,6 +201,13 @@ static double cost_pd (double a, double b)
 }
 
 
+static double lin_rnd (double x)
+{
+	double r = rand() / (double)RAND_MAX;
+	return r * 2.0 - 1.0;
+}
+
+
 void lin_test_mv_mul ()
 {
 #define RN 3
@@ -238,28 +260,55 @@ void lin_test_mv_mul_t ()
 
 
 
-#define L0 3
-#define L1 2
+#define L0 2
+#define L1 3
 #define L2 1
 #define SAMPLECOUNT 4
 
+
+
+
+void fw (double v1[], double const v0[], double const mw[], unsigned n1, unsigned n0)
+{
+	lin_mv_mul (v1, mw, v0, n1, n0); //v1 := mw * v0
+	lin_v_fx (v1, v1, sigmoid, n1); //v1 := sigmoid (v1)
+	//lin_print (v1, n1, 1);
+}
+
+void bp (double vd0[], double const vd1[], double vz0[], double const mw[], unsigned n1, unsigned n0)
+{
+	//Backpropagate
+	lin_mv_mul_t (vd0, mw, vd1, n1, n0); //vd0 := transpose(mw) * vd1
+	lin_v_fx (vz0, vz0, sigmoid_pd, n0); //vz0 := sigmoid_pd (vz0)
+	lin_vv_hadamard (vd0, vd0, vz0, n0); //vd0 := vd0 hadamard vz0
+}
+
+void cw (double mw1[], double const vd1[], double const va0[], unsigned n1, unsigned n0)
+{
+	for (unsigned r = 0; r < n1; ++r)
+	{
+		for (unsigned c = 0; c < n0; ++c)
+		{
+			mw1 [n1*r + c] -= vd1[r] * va0[c] * 0.0001;
+		}
+	}
+}
+
 double x[SAMPLECOUNT][L0] =
 {
-	{0.0, 0.0, 0.0},
-	{0.0, 1.0, 0.0},
-	{1.0, 0.0, 0.0},
-	{1.0, 1.0, 0.0},
+{0.0, 0.0},
+{0.0, 1.0},
+{1.0, 0.0},
+{1.0, 1.0},
 };
 
 double y[SAMPLECOUNT][L2] =
 {
-	{0.0},
-	{1.0},
-	{1.0},
-	{0.0},
+{0.0},
+{1.0},
+{1.0},
+{0.0},
 };
-
-
 
 int main (int argc, char * argv [])
 {
@@ -269,40 +318,54 @@ int main (int argc, char * argv [])
 	//lin_test_mv_mul_t ();
 
 	//L1 by L0 weight matrix, takes (L0) number of inputs and (L1) number of outputs.
-	double a0 [L0]; //Layer 0 inputs
-	double d0 [L0]; //Error
-	double w0 [L1*L0];
 
-	double z1 [L1]; //Layer 1 input/output
-	double a1 [L1]; //Layer 1 input/output
-	double d1 [L1]; //Error
-	double w1 [L2*L1];
+	double w1 [L1*L0];
+	double w2 [L2*L1];
 
-	double z2 [L2];
+
+	lin_v_fx (w1, w1, lin_rnd, L1*L0);
+	lin_v_fx (w1, w1, lin_rnd, L2*L1);
+
+	double a1 [L1];
+	double d1 [L1];
 	double a2 [L2];
 	double d2 [L2];
-
+	uint16_t j = 0;
 	//Feedforward:
-	for (int i = 0; i < SAMPLECOUNT; ++i)
+	while (1)
 	{
-		lin_mv_mul (z1, w0, x[i], L1, L0); //z1 := w0 * a0
-		lin_v_fx (a1, z1, sigmoid, L1); //a1 := sigmoid (z1)
-		lin_print (a1, L1, 1);
+		//lin_print (w1, L1, L0);
+		//lin_print (w2, L2, L1);
 
+		for (int i = 0; i < SAMPLECOUNT; ++i)
+		{
+			fw (a1, w1, x[i], L1, L0);
+			fw (a2, w2, a1, L2, L1);
 
-		lin_mv_mul (z2, w1, a1, L2, L1); //z2 := w1 * a1
-		lin_v_fx (a2, z2, sigmoid, L2); //a2 := sigmoid (z2)
-		lin_print (a2, L2, 1);
+			if (j == 0)
+			{
+				printf ("==========\n");
+				lin_print (w1, L1, L0);
+				lin_print (w2, L2, L1);
+				lin_print (x[i], 1, L0);
+				lin_print (a1, 1, L2);
+				lin_print (a2, 1, L2);
+				lin_print (y [i], 1, L2);
+				printf ("mse % 3.10f\n", lin_vv_mse (a2, y[i], L2));
+			}
 
-		//error
-		lin_vv_sub (d2, a2, y[i], L2);
+			lin_vv_sub (d2, y[i], a2, L2); //d2 := y - a2
+			lin_v_fx (a2, a2, sigmoid_pd, L2); //a2 := sigmoid_pd (a2)
+			lin_vv_hadamard (d2, d2, a2, L1); //d2 := d2 hadamard a2
 
-		//Backpropagate
-		lin_mv_mul_t (d1, w1, d2, L1, L0); //d0 := transpose(w0) * d1
-		lin_v_fx (a0, a0, sigmoid_pd, L0); //a0 := sigmoid_d (a0)
-		lin_vv_hadamard (d0, d0, a0, L1); //d0 := d0 hadamard a0
+			//Backpropagate
+			bp (d1, d2, a1, w1, L2, L1);
+
+			cw (w1, d1, x[i], L1, L0);
+			cw (w2, d2, a1, L2, L1);
+		}
+		j++;
 	}
-
 
 
 
