@@ -70,9 +70,13 @@ static void lin_print_t (double const ma[], unsigned rn, unsigned cn)
  */
 static void lin_vs_macc (double vy[], double const vx[], double sb, unsigned n)
 {
+	assert (isnan (sb) == 0);
 	for (unsigned i = 0; i < n; ++i)
 	{
+		assert (isnan (vx [i]) == 0);
+		assert (isnan (vy [i]) == 0);
 		vy [i] += vx [i] * sb;
+		assert (isnan (vy [i]) == 0);
 	}
 }
 
@@ -165,7 +169,9 @@ static void lin_v_fx (double vy[], double const vx[], double (*f)(double x), uns
 {
 	for (unsigned i = 0; i < n; ++i)
 	{
+		assert (isnan (vx [i]) == 0);
 		vy [i] = f (vx [i]);
+		assert (isnan (vy [i]) == 0);
 	}
 }
 
@@ -177,6 +183,7 @@ static double sigmoid (double x)
 	if (x < -45.0) return 0;
 	if (x > 45.0) return 1;
 	*/
+	assert (isnan (x) == 0);
 	double r = 1.0 / (1.0 + exp (-x));
 	if (isnan (r))
 	{
@@ -266,32 +273,30 @@ void lin_test_mv_mul_t ()
 
 
 
-
-
-
-void lin_assert_isnotnan (double const v[], unsigned n)
+int lin_v_nan_index (double const v[], unsigned n)
 {
+	int i = -1;
 	for (unsigned i = 0; i < n; ++i)
 	{
 		if (isnan (v [i]))
 		{
-			printf ("v [%i] = %f\n", i, v [i]);
-		}
-		assert (isnan (v [i]) == 0);
+			return i;
+		};
 	}
+	return i;
 }
-
 
 
 void fw (double v1[], double const v0[], double const mw[], unsigned n1, unsigned n0)
 {
-	lin_assert_isnotnan (v0, n0);
-	lin_assert_isnotnan (v1, n1);
-	lin_assert_isnotnan (mw, n1*n0);
+	assert (lin_v_nan_index (v0, n0) == -1);
+	assert (lin_v_nan_index (mw, n1*n0) == -1);
 	lin_mv_mul (v1, mw, v0, n1, n0); //v1 := mw * v0
+	assert (lin_v_nan_index (v1, n1) == -1);
 	lin_v_fx (v1, v1, sigmoid, n1); //v1 := sigmoid (v1)
 	//lin_print (v1, n1, 1);
 }
+
 
 void bp (double vd0[], double const vd1[], double vz0[], double const mw[], unsigned n1, unsigned n0)
 {
@@ -301,22 +306,21 @@ void bp (double vd0[], double const vd1[], double vz0[], double const mw[], unsi
 	lin_vv_hadamard (vd0, vd0, vz0, n0); //vd0 := vd0 hadamard vz0
 }
 
+
 void cw (double mw1[], double const vd1[], double const va0[], unsigned n1, unsigned n0)
 {
 	for (unsigned r = 0; r < n1; ++r)
 	{
 		for (unsigned c = 0; c < n0; ++c)
 		{
-			//double x = vd1[r] * va0[c] * 0.001;
-			mw1 [n0*r + c] += vd1[r] * va0[c] * 0.001;
-			//mw1 [n1*c + r] += 1;
+			mw1 [n0*r + c] += vd1[r] * va0[c] * 0.1;
 		}
 	}
 }
 
 
 #define L0 2
-#define L1 20
+#define L1 3
 #define L2 1
 #define SAMPLECOUNT 4
 
@@ -345,15 +349,11 @@ int main (int argc, char * argv [])
 	//lin_test_mv_mul_t ();
 
 	//L1 by L0 weight matrix, takes (L0) number of inputs and (L1) number of outputs.
-
 	double w1 [L1*L0];
 	double w2 [L2*L1];
 
-
 	lin_v_fx (w1, w1, lin_rnd, L1*L0);
 	lin_v_fx (w2, w2, lin_rnd, L2*L1);
-	lin_assert_isnotnan (w1, L1*L0);
-	lin_assert_isnotnan (w2, L2*L1);
 
 	/*
 	lin_print (w1, L1, L0);
@@ -361,25 +361,25 @@ int main (int argc, char * argv [])
 	return 1;
 	*/
 
-	double a1 [L1];
-	double d1 [L1];
-	double a2 [L2];
-	double d2 [L2];
+	double a1 [L1] = {0};
+	double d1 [L1] = {0};
+	double a2 [L2] = {0};
+	double d2 [L2] = {0};
 	uint16_t j = 0;
+
 	//Feedforward:
 	while (1)
 	{
 		//lin_print (w1, L1, L0);
 		//lin_print (w2, L2, L1);
 
-		int i = rand () % SAMPLECOUNT;
-		//for (int i = 0; i < SAMPLECOUNT; ++i)
+		//int i = rand () % SAMPLECOUNT;
+		for (int i = 0; i < SAMPLECOUNT; ++i)
 		{
 
 
 			fw (a1, x[i], w1, L1, L0);
 			fw (a2,   a1, w2, L2, L1);
-
 
 			if (j == 0)
 			{
