@@ -262,8 +262,7 @@ static double sigmoid_pd (double x)
 static double lin_rnd ()
 {
 	double r = rand() / (double)RAND_MAX;
-	assert (isnan (r) == 0);
-	r = r * 2.0 - 1.0;
+	r = r - 0.5;
 	assert (isnan (r) == 0);
 	return r;
 }

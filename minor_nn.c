@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <time.h>
 
 #include "lin.h"
@@ -20,12 +21,12 @@ void fw (double v1[], double const v0[], double const mw[], unsigned n1, unsigne
 }
 
 
-void bp (double vd0[], double const vd1[], double vz0[], double const mw[], unsigned n1, unsigned n0)
+void bp (double vd0[], double const vd1[], double va0[], double const mw[], unsigned n1, unsigned n0)
 {
 	//Backpropagate
 	lin_mv_mul_t (vd0, mw, vd1, n1, n0); //vd0 := transpose(mw) * vd1
-	lin_v_fx (vz0, vz0, sigmoid_pd, n0); //vz0 := sigmoid_pd (vz0)
-	lin_vv_hadamard (vd0, vd0, vz0, n0); //vd0 := vd0 hadamard vz0
+	lin_v_fx (va0, va0, sigmoid_pd, n0); //va0 := sigmoid_pd (va0)
+	lin_vv_hadamard (vd0, vd0, va0, n0); //vd0 := vd0 hadamard va0
 }
 
 
@@ -37,7 +38,8 @@ void cw (double mw1[], double const vd1[], double const va0[], unsigned n1, unsi
 		for (unsigned c = 0; c < n0; ++c)
 		{
 			//w_rc = a_c * d_r
-			mw1 [n0*r + c] -= va0[c] * vd1[r] * 0.05;
+			//TODO: What is happening here?
+			mw1 [n1*c + r] -= va0[c] * vd1[r] * 0.5;
 		}
 	}
 }
@@ -78,6 +80,7 @@ int main (int argc, char * argv [])
 	double w1 [L1*L0];
 	double w2 [L2*L1];
 	//Activated values:
+	double a1_cpy [L1] = {0};
 	double a1 [L1] = {0};
 	double a2 [L2] = {0};
 	//Delta for packpropagation:
@@ -99,7 +102,7 @@ int main (int argc, char * argv [])
 
 	while (1)
 	{
-		for (int j = 0; j < 100000; ++j)
+		for (int j = 0; j < 100; ++j)
 		for (int i = 0; i < SAMPLECOUNT; ++i)
 		{
 			fw (a1, x[i], w1, L1, L0);
@@ -107,7 +110,8 @@ int main (int argc, char * argv [])
 			lin_vv_sub (d2, a2, y[i], L2); //d2 := a2 - y
 			lin_v_fx (a2, a2, sigmoid_pd, L2); //a2 := sigmoid_pd (a2)
 			lin_vv_hadamard (d2, d2, a2, L1); //d2 := d2 hadamard a2
-			bp (d1, d2, a1, w2, L2, L1);
+			memcpy (a1_cpy, a1, sizeof (a1_cpy));
+			bp (d1, d2, a1_cpy, w2, L2, L1);
 			cw (w1, d1, x[i], L1, L0);
 			cw (w2, d2, a1, L2, L1);
 		}
@@ -120,7 +124,7 @@ int main (int argc, char * argv [])
 			//lin_print (w2, L2, L1);
 			fw (a1, x[i], w1, L1, L0);
 			fw (a2,   a1, w2, L2, L1);
-			printf ("%i %i % 2.6f (% 2.6f % 2.6f % 2.6f % 2.6f) (% 2.6f % 2.10f)\n", (int)x[i][0], (int)x[i][1], a2[0], w1[0], w1[1], w1[2], w1[3], w2[0], w2[1]);
+			printf ("%i %i %1.f (% 2.6f % 2.6f % 2.6f % 2.6f) (% 2.6f % 2.10f)\n", (int)x[i][0], (int)x[i][1], a2[0], w1[0], w1[1], w1[2], w1[3], w2[0], w2[1]);
 			/*
 			lin_print (w1, L1, L0);
 			lin_print (w2, L2, L1);
