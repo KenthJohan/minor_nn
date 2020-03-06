@@ -31,7 +31,7 @@ void bp (double vd0[], double const vd1[], double va0[], double const mw[], unsi
 
 
 
-void cw (double mw1[], double const vd1[], double const va0[], unsigned n1, unsigned n0)
+void cw (double mw1[], double const vd1[], double const va0[], unsigned n1, unsigned n0, double learningrate)
 {
 	for (unsigned r = 0; r < n1; ++r)
 	{
@@ -39,7 +39,7 @@ void cw (double mw1[], double const vd1[], double const va0[], unsigned n1, unsi
 		{
 			//w_rc = a_c * d_r
 			//TODO: What is happening here?
-			mw1 [n1*c + r] -= va0[c] * vd1[r] * 0.5;
+			mw1 [n1*c + r] -= va0[c] * vd1[r] * learningrate;
 		}
 	}
 }
@@ -49,7 +49,7 @@ void cw (double mw1[], double const vd1[], double const va0[], unsigned n1, unsi
 #define L1 2
 #define L2 1
 #define SAMPLECOUNT 4
-
+#define LEARNINGRATE 0.5
 
 static double x[SAMPLECOUNT][L0] =
 {
@@ -100,11 +100,13 @@ int main (int argc, char * argv [])
 	return 1;
 	*/
 
+	int iterations = 0;
 	while (1)
 	{
 		for (int j = 0; j < 100; ++j)
 		for (int i = 0; i < SAMPLECOUNT; ++i)
 		{
+			iterations++;
 			fw (a1, x[i], w1, L1, L0);
 			fw (a2,   a1, w2, L2, L1);
 			lin_vv_sub (d2, a2, y[i], L2); //d2 := a2 - y
@@ -112,8 +114,8 @@ int main (int argc, char * argv [])
 			lin_vv_hadamard (d2, d2, a2, L1); //d2 := d2 hadamard a2
 			memcpy (a1_cpy, a1, sizeof (a1_cpy));
 			bp (d1, d2, a1_cpy, w2, L2, L1);
-			cw (w1, d1, x[i], L1, L0);
-			cw (w2, d2, a1, L2, L1);
+			cw (w1, d1, x[i], L1, L0, LEARNINGRATE);
+			cw (w2, d2, a1, L2, L1, LEARNINGRATE);
 		}
 
 
@@ -139,7 +141,7 @@ int main (int argc, char * argv [])
 		}
 
 		int ch = fgetc(stdin);
-		printf ("mse %f\n", mse);
+		printf ("mse = %4.4f, iterations : %i\n", mse, iterations);
 		mse = 0;
 	}
 
