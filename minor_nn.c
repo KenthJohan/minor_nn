@@ -31,6 +31,26 @@ Convention, declare matrix starting with m:
 #include <math.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <time.h>
+
+
+
+
+
+
+
+int lin_v_nan_index (double const v[], unsigned n)
+{
+	int i = -1;
+	for (unsigned i = 0; i < n; ++i)
+	{
+		if (isnan (v [i]))
+		{
+			return i;
+		};
+	}
+	return i;
+}
 
 
 static void lin_print (double const ma[], unsigned rn, unsigned cn)
@@ -93,6 +113,7 @@ static void lin_mv_mul (double vy[], double const ma[], double const vx[], unsig
 {
 	for (unsigned i = 0; i < cn; ++i)
 	{
+		assert (isnan (vx [i]) == 0);
 		lin_vs_macc (vy, ma + rn * i, vx [i], rn);
 	}
 }
@@ -102,7 +123,10 @@ static void lin_vv_hadamard (double vy[], double const va[], double const vb[], 
 {
 	for (unsigned i = 0; i < n; ++i)
 	{
+		assert (isnan (va [i]) == 0);
+		assert (isnan (vb [i]) == 0);
 		vy[i] = va[i] * vb[i];
+		assert (isnan (vy [i]) == 0);
 	}
 }
 
@@ -111,7 +135,10 @@ static void lin_vv_sub (double vy[], double const va[], double const vb[], unsig
 {
 	for (unsigned i = 0; i < n; ++i)
 	{
+		assert (isnan (va [i]) == 0);
+		assert (isnan (vb [i]) == 0);
 		vy[i] = va[i] - vb[i];
+		assert (isnan (vy [i]) == 0);
 	}
 }
 
@@ -122,13 +149,16 @@ static double lin_vv_dot (double const va[], double const vb[], unsigned n)
 	double sum = 0;
 	for (unsigned i = 0; i < n; ++i)
 	{
+		assert (isnan (va [i]) == 0);
+		assert (isnan (vb [i]) == 0);
 		sum += va [i] * vb [i];
+		assert (isnan (sum) == 0);
 	}
 	return sum;
 }
 
 
-
+/*
 static double lin_vv_mse (double const va[], double const vb[], unsigned n)
 {
 	double sum = 0;
@@ -139,6 +169,7 @@ static double lin_vv_mse (double const va[], double const vb[], unsigned n)
 	}
 	return sum;
 }
+*/
 
 
 /**
@@ -154,6 +185,7 @@ static void lin_mv_mul_t (double vy[], double const ma[], double const vx[], uns
 	for (unsigned i = 0; i < cn; ++i)
 	{
 		vy [i] = lin_vv_dot (ma + rn * i, vx, rn);
+		assert (isnan (vy [i]) == 0);
 	}
 }
 
@@ -176,19 +208,31 @@ static void lin_v_fx (double vy[], double const vx[], double (*f)(double x), uns
 }
 
 
+/**
+ * @brief lin_v_f
+ * @param vy Output vector
+ * @param vx Input vector
+ * @param f()
+ * @param n Number of elements in vector \p vy and \p vx
+ */
+static void lin_v_f (double vy[], double const vx[], double (*f)(), unsigned n)
+{
+	for (unsigned i = 0; i < n; ++i)
+	{
+		assert (isnan (vx [i]) == 0);
+		vy [i] = f ();
+		assert (isnan (vy [i]) == 0);
+	}
+}
+
+
 
 static double sigmoid (double x)
 {
-	/*
-	if (x < -45.0) return 0;
-	if (x > 45.0) return 1;
-	*/
+	if (x < -45.0) return 0.0;
+	if (x > 45.0) return 1.0;
 	assert (isnan (x) == 0);
 	double r = 1.0 / (1.0 + exp (-x));
-	if (isnan (r))
-	{
-		printf ("x = %f\n", x);
-	}
 	assert (isnan (r) == 0);
 	return r;
 }
@@ -196,10 +240,14 @@ static double sigmoid (double x)
 
 static double sigmoid_pd (double x)
 {
-	return x * (1.0 - x);
+	assert (isnan (x) == 0);
+	x = x * (1.0 - x);
+	assert (isnan (x) == 0);
+	return x;
 }
 
 
+/*
 static double cost (double a, double b)
 {
 	double d = a - b;
@@ -209,15 +257,22 @@ static double cost (double a, double b)
 
 static double cost_pd (double a, double b)
 {
+	assert (isnan (a) == 0);
+	assert (isnan (b) == 0);
 	double d = a - b;
+	assert (isnan (d) == 0);
 	return d;
 }
+*/
 
 
-static double lin_rnd (double x)
+static double lin_rnd ()
 {
 	double r = rand() / (double)RAND_MAX;
-	return r * 2.0 - 1.0;
+	assert (isnan (r) == 0);
+	r = r * 2.0 - 1.0;
+	assert (isnan (r) == 0);
+	return r;
 }
 
 
@@ -271,22 +326,6 @@ void lin_test_mv_mul_t ()
 }
 
 
-
-
-int lin_v_nan_index (double const v[], unsigned n)
-{
-	int i = -1;
-	for (unsigned i = 0; i < n; ++i)
-	{
-		if (isnan (v [i]))
-		{
-			return i;
-		};
-	}
-	return i;
-}
-
-
 void fw (double v1[], double const v0[], double const mw[], unsigned n1, unsigned n0)
 {
 	assert (lin_v_nan_index (v0, n0) == -1);
@@ -313,14 +352,14 @@ void cw (double mw1[], double const vd1[], double const va0[], unsigned n1, unsi
 	{
 		for (unsigned c = 0; c < n0; ++c)
 		{
-			mw1 [n0*r + c] += vd1[r] * va0[c] * 0.1;
+			mw1 [n1*r + c] -= vd1[r] * va0[c] * 3.0;
 		}
 	}
 }
 
 
 #define L0 2
-#define L1 3
+#define L1 2
 #define L2 1
 #define SAMPLECOUNT 4
 
@@ -352,8 +391,9 @@ int main (int argc, char * argv [])
 	double w1 [L1*L0];
 	double w2 [L2*L1];
 
-	lin_v_fx (w1, w1, lin_rnd, L1*L0);
-	lin_v_fx (w2, w2, lin_rnd, L2*L1);
+	srand(time(0));
+	lin_v_f (w1, w1, lin_rnd, L1*L0);
+	lin_v_f (w2, w2, lin_rnd, L2*L1);
 
 	/*
 	lin_print (w1, L1, L0);
