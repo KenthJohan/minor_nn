@@ -46,7 +46,7 @@ void cw (double mw1[], double const vd1[], double const va0[], unsigned n1, unsi
 
 
 #define L0 2
-#define L1 2
+#define L1 3
 #define L2 1
 #define SAMPLECOUNT 4
 #define LEARNINGRATE 0.5
@@ -73,6 +73,7 @@ int main (int argc, char * argv [])
 	assert (argv);
 	//lin_test_mv_mul ();
 	//lin_test_mv_mul_t ();
+	//return 1;
 
 	//Network topology is (L0, L1, L2):
 	//w1 : L0 inputs and L1 outputs:
@@ -94,15 +95,10 @@ int main (int argc, char * argv [])
 	lin_v_f (w1, lin_rnd, L1*L0);
 	lin_v_f (w2, lin_rnd, L2*L1);
 
-	/*
-	lin_print (w1, L1, L0);
-	lin_print (w2, L2, L1);
-	return 1;
-	*/
-
 	int iterations = 0;
 	while (1)
 	{
+		//Train:
 		for (int j = 0; j < 100; ++j)
 		for (int i = 0; i < SAMPLECOUNT; ++i)
 		{
@@ -118,31 +114,27 @@ int main (int argc, char * argv [])
 			cw (w2, d2, a1, L2, L1, LEARNINGRATE);
 		}
 
-
-
+		//Evaluate:
+		printf ("=============Evaluate==========\n");
+		lin_print (w1, L1, L0, "% 3.1f ", "\n");printf ("\n");
+		lin_print (w2, L2, L1, "% 3.1f ", "\n");printf ("\n");
 		for (int i = 0; i < SAMPLECOUNT; ++i)
 		{
-			//lin_print (w1, L1, L0);
-			//lin_print (w2, L2, L1);
 			fw (a1, x[i], w1, L1, L0);
 			fw (a2,   a1, w2, L2, L1);
-			printf ("%i %i %1.f (% 2.6f % 2.6f % 2.6f % 2.6f) (% 2.6f % 2.10f)\n", (int)x[i][0], (int)x[i][1], a2[0], w1[0], w1[1], w1[2], w1[3], w2[0], w2[1]);
-			/*
-			lin_print (w1, L1, L0);
-			lin_print (w2, L2, L1);
-			lin_print (x[i], 1, L0);
-			lin_print (a1, 1, L1);
-			lin_print (a2, 1, L2);
-			lin_print (y [i], 1, L2);
-			printf ("mse % 3.10f\n", lin_vv_mse (a2, y[i], L2));
-			*/
 			lin_vv_sub (d2, a2, y[i], L2);
 			mse += d2[0] * d2[0];
+			printf ("(");lin_print (x[i], L0, 1, " %1.0f", "");printf (")");
+			printf (" => ");
+			printf ("(");lin_print (a2, L2, 1, "%1.3f", "");printf (")");
+			fputs ("\n", stdout);
 		}
-
-		int ch = fgetc(stdin);
 		printf ("mse = %4.4f, iterations : %i\n", mse, iterations);
 		mse = 0;
+
+
+		int c = fgetc (stdin);
+		if (c == 'q') {return 0;}
 	}
 
 
