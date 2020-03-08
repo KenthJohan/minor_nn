@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <time.h>
+#include <string.h>
 
 /*
 
@@ -92,13 +93,9 @@ static void lin_print_t (double const ma[], unsigned rn, unsigned cn, char const
  */
 static void lin_vs_macc (double vy[], double const vx[], double sb, unsigned n)
 {
-	assert (isnan (sb) == 0);
 	for (unsigned i = 0; i < n; ++i)
 	{
-		assert (isnan (vx [i]) == 0);
-		assert (isnan (vy [i]) == 0);
 		vy [i] += vx [i] * sb;
-		assert (isnan (vy [i]) == 0);
 	}
 }
 
@@ -113,10 +110,9 @@ static void lin_vs_macc (double vy[], double const vx[], double sb, unsigned n)
  */
 static void lin_mv_mul (double vy[], double const ma[], double const vx[], unsigned rn, unsigned cn)
 {
-	assert (vy != vx);
+	memset (vy, 0, rn*sizeof (double));
 	for (unsigned i = 0; i < cn; ++i)
 	{
-		assert (isnan (vx [i]) == 0);
 		double const * vcolumn = ma + rn * i;
 		lin_vs_macc (vy, vcolumn, vx [i], rn);
 	}
@@ -134,10 +130,7 @@ static void lin_vv_hadamard (double vy[], double const va[], double const vb[], 
 {
 	for (unsigned i = 0; i < n; ++i)
 	{
-		assert (isnan (va [i]) == 0);
-		assert (isnan (vb [i]) == 0);
 		vy[i] = va[i] * vb[i];
-		assert (isnan (vy [i]) == 0);
 	}
 }
 
@@ -153,10 +146,7 @@ static void lin_vv_sub (double vy[], double const va[], double const vb[], unsig
 {
 	for (unsigned i = 0; i < n; ++i)
 	{
-		assert (isnan (va [i]) == 0);
-		assert (isnan (vb [i]) == 0);
 		vy[i] = va[i] - vb[i];
-		assert (isnan (vy [i]) == 0);
 	}
 }
 
@@ -173,10 +163,7 @@ static double lin_vv_dot (double const va[], double const vb[], unsigned n)
 	double sum = 0;
 	for (unsigned i = 0; i < n; ++i)
 	{
-		assert (isnan (va [i]) == 0);
-		assert (isnan (vb [i]) == 0);
 		sum += va [i] * vb [i];
-		assert (isnan (sum) == 0);
 	}
 	return sum;
 }
@@ -192,10 +179,10 @@ static double lin_vv_dot (double const va[], double const vb[], unsigned n)
  */
 static void lin_mv_mul_t (double vy[], double const ma[], double const vx[], unsigned rn, unsigned cn)
 {
+	memset (vy, 0, cn*sizeof (double));
 	for (unsigned i = 0; i < cn; ++i)
 	{
 		vy [i] = lin_vv_dot (ma + rn * i, vx, rn);
-		assert (isnan (vy [i]) == 0);
 	}
 }
 
@@ -211,9 +198,7 @@ static void lin_v_fx (double vy[], double const vx[], double (*f)(double x), uns
 {
 	for (unsigned i = 0; i < n; ++i)
 	{
-		assert (isnan (vx [i]) == 0);
 		vy [i] = f (vx [i]);
-		assert (isnan (vy [i]) == 0);
 	}
 }
 
@@ -230,7 +215,6 @@ static void lin_v_f (double vy[], double (*f)(void), unsigned n)
 	for (unsigned i = 0; i < n; ++i)
 	{
 		vy [i] = f ();
-		assert (isnan (vy [i]) == 0);
 	}
 }
 
@@ -238,18 +222,14 @@ static void lin_v_f (double vy[], double (*f)(void), unsigned n)
 
 static double sigmoid (double x)
 {
-	assert (isnan (x) == 0);
 	double r = 1.0 / (1.0 + exp (-x));
-	assert (isnan (r) == 0);
 	return r;
 }
 
 
 static double sigmoid_pd (double x)
 {
-	assert (isnan (x) == 0);
 	x = x * (1.0 - x);
-	assert (isnan (x) == 0);
 	return x;
 }
 
@@ -258,7 +238,6 @@ static double lin_rnd ()
 {
 	double r = rand() / (double)RAND_MAX;
 	r = r - 0.5;
-	assert (isnan (r) == 0);
 	return r;
 }
 
