@@ -101,6 +101,24 @@ static void lin_vs_macc (double vy[], double const vx[], double sb, unsigned n)
 
 
 /**
+ * @brief lin_vv_dot Dot product of two vectors
+ * @param va Input vector
+ * @param vb Input vector
+ * @param n Input number of elements in vector \p va, \p vb
+ * @return The sum of product
+ */
+static double lin_vv_dot (double const va[], double const vb[], unsigned n)
+{
+	double sum = 0;
+	for (unsigned i = 0; i < n; ++i)
+	{
+		sum += va [i] * vb [i];
+	}
+	return sum;
+}
+
+
+/**
  * @brief lin_mv_mul Multiply matrix \p ma by vector \p vx.
  * @param vy Output vector
  * @param ma Input left side matrix
@@ -110,11 +128,30 @@ static void lin_vs_macc (double vy[], double const vx[], double sb, unsigned n)
  */
 static void lin_mv_mul (double vy[], double const ma[], double const vx[], unsigned rn, unsigned cn)
 {
+	//TODO: this memset causes bad training?
 	memset (vy, 0, rn*sizeof (double));
 	for (unsigned i = 0; i < cn; ++i)
 	{
 		double const * vcolumn = ma + rn * i;
 		lin_vs_macc (vy, vcolumn, vx [i], rn);
+	}
+}
+
+
+/**
+ * @brief lin_mv_mul_t Multiply transposed matrix \p ma by vector \p vx.
+ * @param vy Output vector
+ * @param ma Input left side matrix
+ * @param vx Input right side vector
+ * @param rn Number of rows in matrix \p ma and number of elements in vector \p vx
+ * @param cn Number of columns in matrix \p ma and number of elements in vector \p vy
+ */
+static void lin_mv_mul_t (double vy[], double const ma[], double const vx[], unsigned rn, unsigned cn)
+{
+	memset (vy, 0, cn*sizeof (double));
+	for (unsigned i = 0; i < cn; ++i)
+	{
+		vy [i] = lin_vv_dot (ma + rn * i, vx, rn);
 	}
 }
 
@@ -147,42 +184,6 @@ static void lin_vv_sub (double vy[], double const va[], double const vb[], unsig
 	for (unsigned i = 0; i < n; ++i)
 	{
 		vy[i] = va[i] - vb[i];
-	}
-}
-
-
-/**
- * @brief lin_vv_dot Dot product of two vectors
- * @param va Input vector
- * @param vb Input vector
- * @param n Input number of elements in vector \p va, \p vb
- * @return The sum of product
- */
-static double lin_vv_dot (double const va[], double const vb[], unsigned n)
-{
-	double sum = 0;
-	for (unsigned i = 0; i < n; ++i)
-	{
-		sum += va [i] * vb [i];
-	}
-	return sum;
-}
-
-
-/**
- * @brief lin_mv_mul_t Multiply transposed matrix \p ma by vector \p vx.
- * @param vy Output vector
- * @param ma Input left side matrix
- * @param vx Input right side vector
- * @param rn Number of rows in matrix \p ma and number of elements in vector \p vx
- * @param cn Number of columns in matrix \p ma and number of elements in vector \p vy
- */
-static void lin_mv_mul_t (double vy[], double const ma[], double const vx[], unsigned rn, unsigned cn)
-{
-	memset (vy, 0, cn*sizeof (double));
-	for (unsigned i = 0; i < cn; ++i)
-	{
-		vy [i] = lin_vv_dot (ma + rn * i, vx, rn);
 	}
 }
 

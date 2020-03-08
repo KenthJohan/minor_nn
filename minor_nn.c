@@ -10,8 +10,6 @@
 
 
 
-
-
 void fw (double v1[], double const v0[], double const mw[], unsigned n1, unsigned n0)
 {
 	lin_mv_mul (v1, mw, v0, n1, n0); //v1 := mw * v0
@@ -19,20 +17,10 @@ void fw (double v1[], double const v0[], double const mw[], unsigned n1, unsigne
 	//lin_print (v1, n1, 1);
 }
 
-/*
-void bp (double vd0[], double const vd1[], double va0[], double const mw[], unsigned n1, unsigned n0)
-{
-	//Backpropagate
-	lin_mv_mul_t (vd0, mw, vd1, n1, n0); //vd0 := transpose(mw) * vd1
-	lin_v_fx (va0, va0, sigmoid_pd, n0); //va0 := sigmoid_pd (va0)
-	lin_vv_hadamard (vd0, vd0, va0, n0); //vd0 := vd0 hadamard va0
-}
-*/
 
 void bp (double vd0[], double const vd1[], double const va0[], double const mw[], unsigned n1, unsigned n0)
 {
 	double va0s[10];
-	//Backpropagate
 	lin_mv_mul_t (vd0, mw, vd1, n1, n0); //vd0 := transpose(mw) * vd1
 	lin_v_fx (va0s, va0, sigmoid_pd, n0); //va0s := sigmoid_pd (va0)
 	lin_vv_hadamard (vd0, vd0, va0s, n0); //vd0 := vd0 hadamard va0s
@@ -88,16 +76,18 @@ int main (int argc, char * argv [])
 	//w2 : L1 inputs and L2 outputs:
 	double w1 [L1*L0];
 	double w2 [L2*L1];
+	double a1 [L1] = {0};
+	double a2 [L2] = {0};
+	double d1 [L1] = {0};
+	double d2 [L2] = {0};
 	//Activated values:
-	double a [L1+L2] = {0};
-	double * a1 = a;
-	double * a2 = a + L1;
+	//double a [L1+L2] = {0};
+	//double * a1 = a;
+	//double * a2 = a + L1;
 	//Delta for packpropagation:
-	double d [L1+L2] = {0};
-	double * d1 = d;
-	double * d2 = d + L1;
-	//double d1 [L1] = {0};
-	//double d2 [L2] = {0};
+	//double d [L1+L2] = {0};
+	//double * d1 = d;
+	//double * d2 = d + L1;
 	//Mean square error:
 	double mse = 0;
 

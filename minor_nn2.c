@@ -109,10 +109,10 @@ void cw (double mw1[], double const vd1[], double const va0[], unsigned n1, unsi
 
 
 #define L0 2
-#define L1 3
+#define L1 2
 #define L2 1
 #define SAMPLECOUNT 4
-#define LEARNINGRATE 0.5
+#define LEARNINGRATE 1
 
 static double x[SAMPLECOUNT][L0] =
 {
